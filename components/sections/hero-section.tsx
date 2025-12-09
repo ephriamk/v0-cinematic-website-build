@@ -30,7 +30,7 @@ export function HeroSection() {
           </a>
           <div className="flex items-center gap-4 pl-4 border-l border-white/20">
             <a
-              href="https://twitter.com"
+              href="https://x.com/i/communities/1997365593889177684"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/60 hover:text-accent transition-colors"
