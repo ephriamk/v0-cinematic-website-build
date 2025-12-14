@@ -64,13 +64,13 @@ export function Footer() {
             <ul className="space-y-3">
               <li>
                 <a
-                  href="https://twitter.com"
+                  href="https://x.com/i/communities/1997365593889177684"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground/70 hover:text-accent transition-colors duration-300 text-sm flex items-center gap-2"
                 >
                   <Twitter className="w-4 h-4" />
-                  Twitter
+                  X Community
                 </a>
               </li>
               <li>

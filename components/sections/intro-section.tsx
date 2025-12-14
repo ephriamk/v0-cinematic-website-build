@@ -66,24 +66,24 @@ export function IntroSection() {
 
   const stats = [
     {
-      value: "47%",
-      label: "of U.S. jobs at high risk of automation",
+      value: "92M",
+      label: "jobs displaced by 2030, but 170M new roles created",
       citation:
-        "Oxford economists Carl Benedikt Frey and Michael Osborne estimated that automation puts roughly 47% of U.S. jobs at high risk over 20 years (by around 2030).",
-      sourceUrl: "https://www.axios.com/2017/12/15/expert-doubles-down-robots-still-threaten-47-of-us-jobs-1513305167",
+        "The World Economic Forum's Future of Jobs Report 2025 projects 92 million jobs displaced by AI-driven automation, but 170 million new roles created—a net gain of 78 million jobs globally.",
+      sourceUrl: "https://www.weforum.org/publications/the-future-of-jobs-report-2025/",
     },
     {
-      value: "$15.7T",
-      label: "potential global GDP boost from AI by 2030",
-      citation: "According to PwC, AI could boost global GDP by about $15.7 trillion (a 14% increase) by 2030.",
-      sourceUrl: "https://www.weforum.org/stories/2017/06/the-global-economy-will-be-14-bigger-in-2030-because-of-ai/",
+      value: "78%",
+      label: "of organizations now using AI (up from 55%)",
+      citation: "U.S. Census Bureau data shows 78% of organizations reported using AI in 2024, a significant increase from 55% the previous year, marking rapid enterprise adoption.",
+      sourceUrl: "https://www.census.gov/library/stories/2025/09/technology-impact.html",
     },
     {
-      value: "800M",
-      label: "workers may need to transition jobs",
+      value: "56%",
+      label: "wage premium for workers with AI skills",
       citation:
-        "A 2017 McKinsey report warned that up to 800 million workers worldwide may be displaced by automation and need to transition jobs by 2030.",
-      sourceUrl: "https://www.weforum.org/stories/2017/12/robots-coming-for-800-million-jobs/",
+        "PwC's 2025 Global AI Jobs Barometer found workers with AI skills command an average 56% wage premium, up from 25% the previous year, as AI reshapes labor market value.",
+      sourceUrl: "https://www.pwc.com/gx/en/news-room/press-releases/2025/ai-linked-to-a-fourfold-increase-in-productivity-growth.html",
     },
   ]
 

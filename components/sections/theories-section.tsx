@@ -108,53 +108,105 @@ const theories = [
       "Regular unconditional payments to all citizens, ensuring everyone can meet basic needs regardless of employment status.",
     quotes: [
       {
-        text: "Automation will cause widespread job losses... a $1,000/month UBI would help workers survive the shockwaves of automation and maintain basic economic stability.",
-        author: "Andrew Yang",
-        source: "CNN/Business Insider",
-        sourceUrl: "https://www.businessinsider.com/andrew-yang-ai-may-wipe-out-40-million-us-jobs-2025-12",
+        text: "AI will affect almost 40 percent of jobs around the world, replacing some and complementing others. We need a careful balance of policies to tap its potential.",
+        author: "Kristalina Georgieva",
+        source: "IMF (2024)",
+        sourceUrl: "https://www.imf.org/en/Blogs/Articles/2024/01/14/ai-will-transform-the-global-economy-lets-make-sure-it-benefits-humanity",
       },
       {
         text: "We're all the ones who trained AI... we should receive our cut of all of this productivity growth.",
         author: "Scott Santens",
-        source: "WBUR On Point",
+        source: "WBUR On Point (2024)",
         sourceUrl: "https://www.wbur.org/onpoint/2024/09/02/ai-universal-basic-income-economy-artificial-intelligence",
       },
       {
-        text: "UBI is a powerful instrument of social justice that would promote real freedom for all by providing the material resources that people need to pursue their aims.",
-        author: "Philippe Van Parijs",
-        source: "Boston Review",
-        sourceUrl: "https://www.bostonreview.net/forum/ubi-van-parijs/",
+        text: "Several countries are now conducting UBI pilot programs including South Korea, Wales, and India to address economic inequality and automation-driven unemployment.",
+        author: "Global UBI Initiatives",
+        source: "Newsweek (2025)",
+        sourceUrl: "https://www.newsweek.com/countries-testing-universal-basic-income-2025-2103428",
       },
     ],
   },
   {
     number: "02",
-    title: "Robot Taxation",
+    title: "AI & Workforce Transformation",
     description:
-      "Taxing automated labor at rates similar to human labor, creating funding for social programs and worker transition support.",
+      "Understanding how AI reshapes employment, requiring new policies for worker transition and economic stability.",
     quotes: [
       {
-        text: "If a robot replaces a $50k worker, you'd think that we'd tax the robot at a similar level... we'd be willing to slow down the speed of automation to fund worker retraining.",
-        author: "Bill Gates",
-        source: "World Economic Forum",
-        sourceUrl: "https://www.weforum.org/stories/2017/02/bill-gates-this-is-why-we-should-tax-robots/",
+        text: "The WEF Future of Jobs Report 2025 projects 92 million jobs will be displaced while 170 million new roles emerge—a net gain of 78 million jobs by 2030.",
+        author: "World Economic Forum",
+        source: "Future of Jobs Report (2025)",
+        sourceUrl: "https://www.weforum.org/publications/the-future-of-jobs-report-2025/",
       },
       {
-        text: "Automation could eliminate up to 47% of jobs in the next 20 years... Millions of jobs will be lost – but if we prepare now, we can create new opportunities through training, education and smart investments.",
-        author: "Jane Kim",
-        source: "McDonald Hopkins",
-        sourceUrl: "https://www.mcdonaldhopkins.com/insights/news/California-San-Francisco-explores-the-need-for-a-r",
+        text: "Workers aged 22 to 25 in AI-exposed occupations like customer service and software development experienced a 13% decline in employment since 2022.",
+        author: "Stanford University",
+        source: "CNBC (2025)",
+        sourceUrl: "https://www.cnbc.com/2025/08/28/generative-ai-reshapes-us-job-market-stanford-study-shows-entry-level-young-workers.html",
       },
       {
-        text: "If a machine replaces a man and creates wealth, there is no reason that wealth should not be taxed.",
-        author: "Benoît Hamon",
-        source: "CIAT",
-        sourceUrl: "https://www.ciat.org/taxes-on-robots/?lang=en",
+        text: "As many as 41% of employers plan to use AI to replace roles, highlighting the accelerating trend of AI integration in the workplace.",
+        author: "Employer Survey",
+        source: "CNBC (2025)",
+        sourceUrl: "https://www.cnbc.com/2025/02/26/as-many-as-41percent-of-employers-plan-to-use-ai-to-replace-roles-says-new-report.html",
       },
     ],
   },
   {
     number: "03",
+    title: "Productivity & Wages",
+    description:
+      "AI is creating unprecedented productivity gains while reshaping compensation structures for skilled workers.",
+    quotes: [
+      {
+        text: "Workers with AI skills observed an average wage premium of 56% in 2024, up from 25% the previous year, as AI reshapes labor market value.",
+        author: "PwC",
+        source: "Global AI Jobs Barometer (2025)",
+        sourceUrl: "https://www.pwc.com/gx/en/news-room/press-releases/2025/ai-linked-to-a-fourfold-increase-in-productivity-growth.html",
+      },
+      {
+        text: "Industries most exposed to AI have seen a fourfold increase in productivity growth, from 7% (2018-2022) to 27% (2018-2024).",
+        author: "PwC",
+        source: "Global AI Jobs Barometer (2025)",
+        sourceUrl: "https://www.pwc.com/gx/en/news-room/press-releases/2025/ai-linked-to-a-fourfold-increase-in-productivity-growth.html",
+      },
+      {
+        text: "Major U.S. banks including JPMorgan Chase and Wells Fargo report significant productivity gains due to AI adoption, with implications for workforce restructuring.",
+        author: "Banking Industry",
+        source: "Reuters (2025)",
+        sourceUrl: "https://www.reuters.com/business/finance/us-bank-executives-say-ai-will-boost-productivity-cut-jobs-2025-12-09/",
+      },
+    ],
+  },
+  {
+    number: "04",
+    title: "Enterprise AI Adoption",
+    description:
+      "Organizations are rapidly integrating AI, fundamentally changing how businesses operate and employ workers.",
+    quotes: [
+      {
+        text: "78% of organizations reported using AI in 2024, up from 55% the previous year, marking rapid enterprise adoption across industries.",
+        author: "U.S. Census Bureau",
+        source: "Census.gov (2025)",
+        sourceUrl: "https://www.census.gov/library/stories/2025/09/technology-impact.html",
+      },
+      {
+        text: "Automation could increase up to three hours per day, significantly affecting sectors like office support, customer service, and food service.",
+        author: "McKinsey",
+        source: "Forbes (2025)",
+        sourceUrl: "https://www.forbes.com/sites/corneliawalther/2025/06/04/universal-basic-income-a-business-case-for-the-ai-era/",
+      },
+      {
+        text: "The U.S. economy added nearly one million fewer jobs than estimated, with the information sector experiencing 3% decline—evidence AI is automating tech jobs.",
+        author: "Bureau of Labor Statistics",
+        source: "Fortune (2025)",
+        sourceUrl: "https://fortune.com/2025/09/09/bls-revisions-nearly-a-million-fewer-jobs-ai-automating-tech/",
+      },
+    ],
+  },
+  {
+    number: "05",
     title: "Sovereign Wealth Funds",
     description:
       "Public ownership stakes in automated industries, distributing productivity gains as universal dividends to all citizens.",
@@ -166,73 +218,30 @@ const theories = [
         sourceUrl: "https://www.peoplespolicyproject.org/projects/social-wealth-fund/",
       },
       {
-        text: "Alaska's Permanent Fund invests oil revenues and has paid every Alaskan an annual dividend—$1,100 per resident in 2017, with earlier years over $2,000.",
-        author: "Alaska Permanent Fund",
-        source: "People's Policy Project",
-        sourceUrl: "https://www.peoplespolicyproject.org/projects/social-wealth-fund/",
-      },
-    ],
-  },
-  {
-    number: "04",
-    title: "Reduced Work Week",
-    description:
-      "Distributing remaining human work more evenly through shorter standard hours, maintaining employment while sharing productivity gains.",
-    quotes: [
-      {
-        text: "We could cut the working week by a third and be just as rich – probably richer! Eventually we should aim for a 15-hour week.",
-        author: "Rutger Bregman",
-        source: "The Guardian",
-        sourceUrl:
-          "https://www.theguardian.com/books/2017/feb/26/rutger-bregman-utopia-for-realists-interview-universal-basic-income",
-      },
-      {
-        text: "A 21-hour week would reduce stress and overwork, making people less stressed, more in control, happier in our jobs and more productive.",
-        author: "Anna Coote, New Economics Foundation",
-        source: "Personnel Today",
-        sourceUrl:
-          "https://www.personneltoday.com/hr/21-hour-working-week-could-cut-unemployment-and-boost-productivity-says-nef/",
-      },
-    ],
-  },
-  {
-    number: "05",
-    title: "Care Economy",
-    description:
-      "Recognizing and compensating caregiving, education, and community work as essential contributions to society and the economy.",
-    quotes: [
-      {
-        text: "Care is a vital and fundamental ingredient to a thriving future economy. Society must finally recognize that care is valuable and a shared need worthy of support.",
-        author: "Ai-jen Poo",
-        source: "Rockefeller Foundation",
-        sourceUrl:
-          "https://www.rockefellerfoundation.org/bellagio-breakthroughs/ai-jen-poo-on-transforming-the-care-economy/",
-      },
-      {
-        text: "By denying housework a wage and transforming it into an act of love, capital has... got a hell of a lot of work almost for free.",
-        author: "Silvia Federici",
-        source: "Wages Against Housework",
-        sourceUrl: "https://caringlabor.wordpress.com/2010/09/15/silvia-federici-wages-against-housework/",
+        text: "Taiwan announced its second universal cash payment to all citizens in 2025, providing NT$10,000 (approximately $300 USD) to address economic uncertainties.",
+        author: "Taiwan Government",
+        source: "Basic Income Earth (2025)",
+        sourceUrl: "https://basicincome.org/news/2025/08/",
       },
     ],
   },
   {
     number: "06",
-    title: "Post-Scarcity Models",
+    title: "Global Economic Outlook",
     description:
-      "Reimagining economics for a world where technology makes essentials abundant and traditional market logic breaks down.",
+      "Understanding the broader economic context as AI transforms markets, trade, and growth patterns worldwide.",
     quotes: [
       {
-        text: "The acquisition of wealth is no longer the driving force in our lives. We work to better ourselves and the rest of humanity.",
-        author: "Captain Picard, Star Trek",
-        source: "Star Trek: First Contact",
-        sourceUrl: "https://mb21.github.io/blog/2014/07/06/money-in-the-star-trek-universe",
+        text: "Global growth is projected at 3.2% for 2025, with AI and automation reshaping economic dynamics across all major economies.",
+        author: "IMF",
+        source: "World Economic Outlook (2025)",
+        sourceUrl: "https://www.imf.org/en/Publications/WEO/Issues/2025/04/22/world-economic-outlook-april-2025",
       },
       {
-        text: "New technologies could liberate us from work... automation is the path to a world of liberty, luxury and happiness beyond scarcity.",
-        author: "Aaron Bastani",
-        source: "Fully Automated Luxury Communism",
-        sourceUrl: "https://www.versobooks.com/products/476-fully-automated-luxury-communism",
+        text: "AI-driven automation will displace approximately 85 million jobs globally by 2025, but create around 97 million new roles—a net gain of 12 million jobs.",
+        author: "Industry Analysis",
+        source: "SQ Magazine (2025)",
+        sourceUrl: "https://sqmagazine.co.uk/ai-job-creation-statistics/",
       },
     ],
   },
