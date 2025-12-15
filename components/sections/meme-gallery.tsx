@@ -10,6 +10,7 @@ interface MediaItem {
   src: string
   title: string
   channel: number
+  overlay?: string // Optional text overlay
 }
 
 interface ImageDimensions {
@@ -19,70 +20,71 @@ interface ImageDimensions {
 // Meme gallery items
 const mediaItems: MediaItem[] = [
   {
+    id: "0",
+    type: "video",
+    src: "/images/memes/1205.mov",
+    title: "The Future of Work",
+    channel: 1,
+  },
+  {
     id: "1",
     type: "image",
-    src: "/images/memes/Gemini_Generated_Image_2742nu2742nu2742.png",
-    title: "When Even Robots Miss the Office",
-    channel: 1,
+    src: "/images/memes/Gemini_Generated_Image_p6o0ovp6o0ovp6o0.png",
+    title: "Training Data Realization",
+    channel: 2,
   },
   {
     id: "2",
     type: "image",
-    src: "/images/memes/Gemini_Generated_Image_7luxtc7luxtc7lux.png",
-    title: "Employers Looking at AI",
-    channel: 2,
+    src: "/images/memes/Gemini_Generated_Image_i89kfdi89kfdi89k.png",
+    title: "Post-Labor Aesthetic",
+    channel: 3,
   },
   {
     id: "3",
     type: "image",
-    src: "/images/memes/Gemini_Generated_Image_fsuw0pfsuw0pfsuw.png",
-    title: "The New Developer Workflow",
-    channel: 3,
+    src: "/images/memes/Gemini_Generated_Image_riwp0wriwp0wriwp.png",
+    title: "The Automation Paradox",
+    channel: 4,
   },
   {
     id: "4",
     type: "image",
-    src: "/images/memes/Gemini_Generated_Image_i89kfdi89kfdi89k.png",
-    title: "Post-Labor Aesthetic",
-    channel: 4,
+    src: "/images/memes/Gemini_Generated_Image_2742nu2742nu2742.png",
+    title: "When Even Robots Miss the Office",
+    channel: 5,
   },
   {
     id: "5",
     type: "image",
-    src: "/images/memes/Gemini_Generated_Image_p6o0ovp6o0ovp6o0.png",
-    title: "Training Data Realization",
-    channel: 5,
+    src: "/images/memes/Gemini_Generated_Image_fsuw0pfsuw0pfsuw.png",
+    title: "The New Developer Workflow",
+    channel: 6,
+    overlay: "My Clanker",
   },
   {
     id: "6",
-    type: "image",
-    src: "/images/memes/Gemini_Generated_Image_riwp0wriwp0wriwp.png",
-    title: "The Automation Paradox",
-    channel: 6,
-  },
-  {
-    id: "7",
     type: "image",
     src: "/images/memes/Gemini_Generated_Image_si2dcssi2dcssi2d.png",
     title: "Sigma Robot Grindset",
     channel: 7,
   },
   {
-    id: "8",
+    id: "7",
     type: "image",
     src: "/images/memes/Gemini_Generated_Image_wduf1kwduf1kwduf.png",
     title: "The Great Replacement",
     channel: 8,
   },
   {
-    id: "9",
+    id: "8",
     type: "image",
     src: "/images/memes/Gemini_Generated_Image_x9yz0rx9yz0rx9yz.png",
     title: "Robot Living Its Best Life",
     channel: 9,
   },
   {
-    id: "10",
+    id: "9",
     type: "image",
     src: "/images/memes/Gemini_Generated_Image_z33f80z33f80z33f.png",
     title: "Contemplating the Post-Labor Future",
@@ -100,8 +102,35 @@ function TVScreen({
   onImageLoad?: (id: string, width: number, height: number) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const progressRef = useRef<HTMLDivElement>(null)
   const [isMuted, setIsMuted] = useState(true)
   const [isPlaying, setIsPlaying] = useState(true)
+  const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+
+  // Update progress as video plays
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime)
+      setProgress((video.currentTime / video.duration) * 100)
+    }
+
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration)
+    }
+
+    video.addEventListener("timeupdate", handleTimeUpdate)
+    video.addEventListener("loadedmetadata", handleLoadedMetadata)
+
+    return () => {
+      video.removeEventListener("timeupdate", handleTimeUpdate)
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata)
+    }
+  }, [])
 
   const toggleMute = () => {
     if (videoRef.current) {
@@ -119,6 +148,24 @@ function TVScreen({
       }
       setIsPlaying(!isPlaying)
     }
+  }
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current || !progressRef.current) return
+    
+    const rect = progressRef.current.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const percentage = clickX / rect.width
+    const newTime = percentage * videoRef.current.duration
+    
+    videoRef.current.currentTime = newTime
+    setProgress(percentage * 100)
+  }
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60)
+    const seconds = Math.floor(time % 60)
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`
   }
 
   const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -166,13 +213,23 @@ function TVScreen({
 
       {/* Media content */}
       {item.type === "image" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={item.src}
-          alt={item.title}
-          className="w-full h-full object-contain"
-          onLoad={handleImageLoad}
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.src}
+            alt={item.title}
+            className="w-full h-full object-contain"
+            onLoad={handleImageLoad}
+          />
+          {/* Text overlay for images */}
+          {item.overlay && (
+            <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center">
+              <span className="text-white text-2xl md:text-4xl font-bold px-6 py-2 bg-black/70 backdrop-blur-sm rounded-lg shadow-lg tracking-wide">
+                {item.overlay}
+              </span>
+            </div>
+          )}
+        </>
       ) : (
         <video
           ref={videoRef}
@@ -185,21 +242,46 @@ function TVScreen({
         />
       )}
 
-      {/* Video controls */}
+      {/* Video controls with progress bar */}
       {item.type === "video" && (
-        <div className="absolute bottom-4 right-4 z-30 flex gap-2">
-          <button
-            onClick={togglePlay}
-            className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all"
+        <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
+          {/* Progress bar */}
+          <div 
+            ref={progressRef}
+            onClick={handleSeek}
+            className="w-full h-2 bg-white/20 rounded-full cursor-pointer mb-3 group hover:h-3 transition-all"
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-          </button>
-          <button
-            onClick={toggleMute}
-            className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
+            <div 
+              className="h-full bg-gradient-to-r from-accent to-cyan-400 rounded-full relative"
+              style={{ width: `${progress}%` }}
+            >
+              {/* Playhead */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </div>
+          
+          {/* Controls row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={togglePlay}
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={toggleMute}
+                className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-all"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+            </div>
+            
+            {/* Time display */}
+            <div className="font-mono text-sm text-white/70">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
+          </div>
         </div>
       )}
 
@@ -398,9 +480,9 @@ export function MemeGallery() {
   const currentItem = mediaItems[currentIndex] || mediaItems[0]
   const currentDimensions = imageDimensions[currentItem.id]
   
-  // Preload all images to get their dimensions
+  // Preload all media to get their dimensions
   useEffect(() => {
-    const loadImages = async () => {
+    const loadMedia = async () => {
       const dims: ImageDimensions = {}
       
       await Promise.all(
@@ -418,6 +500,18 @@ export function MemeGallery() {
               }
               img.onerror = () => resolve()
               img.src = item.src
+            } else if (item.type === "video") {
+              const video = document.createElement("video")
+              video.onloadedmetadata = () => {
+                dims[item.id] = {
+                  width: video.videoWidth,
+                  height: video.videoHeight,
+                  aspectRatio: video.videoWidth / video.videoHeight
+                }
+                resolve()
+              }
+              video.onerror = () => resolve()
+              video.src = item.src
             } else {
               resolve()
             }
@@ -429,7 +523,7 @@ export function MemeGallery() {
       setIsLoading(false)
     }
     
-    loadImages()
+    loadMedia()
   }, [])
 
   const handleImageLoad = useCallback((id: string, width: number, height: number) => {
