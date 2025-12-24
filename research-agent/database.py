@@ -21,8 +21,25 @@ def init_db():
             summary TEXT NOT NULL,
             sources JSONB DEFAULT '[]'::jsonb,
             key_stats JSONB DEFAULT '[]'::jsonb,
+            image_url TEXT,
+            image_prompt TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    """)
+    
+    # Add image columns if they don't exist (for existing databases)
+    cur.execute("""
+        DO $$ 
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name='research_updates' AND column_name='image_url') THEN
+                ALTER TABLE research_updates ADD COLUMN image_url TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name='research_updates' AND column_name='image_prompt') THEN
+                ALTER TABLE research_updates ADD COLUMN image_prompt TEXT;
+            END IF;
+        END $$;
     """)
     
     # Create index on topic for faster lookups
@@ -66,7 +83,7 @@ def get_similar_research(topic: str, limit: int = 1):
     pattern = '%' + '%'.join(keywords) + '%'
     
     cur.execute("""
-        SELECT id, topic, summary, sources, key_stats, created_at::text
+        SELECT id, topic, summary, sources, key_stats, image_url, image_prompt, created_at::text
         FROM research_updates
         WHERE LOWER(topic) LIKE %s
         ORDER BY created_at DESC
@@ -85,11 +102,14 @@ def get_similar_research(topic: str, limit: int = 1):
             "summary": row[2],
             "sources": row[3],
             "key_stats": row[4],
-            "created_at": row[5]
+            "image_url": row[5],
+            "image_prompt": row[6],
+            "created_at": row[7]
         }
     return None
 
-def save_research(topic: str, summary: str, sources: list = None, key_stats: list = None):
+def save_research(topic: str, summary: str, sources: list = None, key_stats: list = None, 
+                  image_url: str = None, image_prompt: str = None):
     """Save a research update to the database"""
     conn = get_connection()
     cur = conn.cursor()
@@ -98,10 +118,10 @@ def save_research(topic: str, summary: str, sources: list = None, key_stats: lis
     stats_json = json.dumps(key_stats or [])
     
     cur.execute("""
-        INSERT INTO research_updates (topic, summary, sources, key_stats)
-        VALUES (%s, %s, %s::jsonb, %s::jsonb)
+        INSERT INTO research_updates (topic, summary, sources, key_stats, image_url, image_prompt)
+        VALUES (%s, %s, %s::jsonb, %s::jsonb, %s, %s)
         RETURNING id
-    """, (topic, summary, sources_json, stats_json))
+    """, (topic, summary, sources_json, stats_json, image_url, image_prompt))
     
     result = cur.fetchone()
     conn.commit()
@@ -115,7 +135,7 @@ def get_latest_research(limit: int = 10):
     cur = conn.cursor()
     
     cur.execute("""
-        SELECT id, topic, summary, sources, key_stats, 
+        SELECT id, topic, summary, sources, key_stats, image_url, image_prompt,
                created_at::text as created_at
         FROM research_updates
         ORDER BY created_at DESC
@@ -135,7 +155,9 @@ def get_latest_research(limit: int = 10):
             "summary": row[2],
             "sources": row[3],
             "key_stats": row[4],
-            "created_at": row[5]
+            "image_url": row[5],
+            "image_prompt": row[6],
+            "created_at": row[7]
         })
     return results
 
