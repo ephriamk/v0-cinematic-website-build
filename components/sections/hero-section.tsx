@@ -28,6 +28,9 @@ export function HeroSection() {
           <a href="#memes" className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block">
             Broadcast
           </a>
+          <a href="#research" className="text-sm text-white/60 hover:text-white transition-colors hidden sm:block">
+            Research
+          </a>
           <div className="flex items-center gap-4 pl-4 border-l border-white/20">
             <a
               href="https://x.com/i/communities/1997365593889177684"
