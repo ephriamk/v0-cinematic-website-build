@@ -4,60 +4,58 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from database import init_db, get_latest_research, cleanup_old_research, get_all_topics, clear_all_research
-from agent import run_research, run_all_research, run_scheduled_research, TOPIC_POOL
+from agent import run_research, run_all_research, run_news_check, NEWS_QUERIES, TOPIC_POOL
 
-# Scheduler for periodic research
 scheduler = BackgroundScheduler()
+check_count = 0
 
-def scheduled_research():
-    """Background job to run research daily on fresh topics"""
-    print("=" * 50)
-    print("Running scheduled research (daily job)")
-    print("=" * 50)
+def scheduled_news_check():
+    """Check for fresh news every 20 minutes"""
+    global check_count
+    check_count += 1
+    print(f"\n{'='*50}")
+    print(f"Scheduled check #{check_count}")
+    print(f"{'='*50}")
+    
     try:
-        results = run_scheduled_research(generate_images=True)
-        success_count = sum(1 for r in results if r.get("status") == "success")
-        print(f"Scheduled research completed: {success_count}/{len(results)} successful")
+        result = run_news_check(generate_images=True)
+        print(f"Result: {result['status']}")
         
-        # Cleanup old entries (keep last 50)
-        deleted = cleanup_old_research(keep_count=50)
-        if deleted > 0:
-            print(f"Cleaned up {deleted} old research entries")
+        # Cleanup old entries periodically (every 10 checks)
+        if check_count % 10 == 0:
+            deleted = cleanup_old_research(keep_count=100)
+            if deleted > 0:
+                print(f"Cleaned up {deleted} old entries")
     except Exception as e:
-        print(f"Scheduled research error: {e}")
+        print(f"Error: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    print("Starting Post-Labor Research Agent...")
+    print("Starting Post-Labor Research Agent v3...")
     init_db()
     
-    # Schedule research to run every 24 HOURS (was 6)
+    # Check for news every 20 MINUTES
     scheduler.add_job(
-        scheduled_research, 
-        'interval', 
-        hours=24,  # Once per day
-        id='daily_research_job',
-        next_run_time=None  # Don't run immediately on startup
+        scheduled_news_check,
+        'interval',
+        minutes=20,
+        id='news_check',
+        next_run_time=None  # Don't run immediately
     )
     scheduler.start()
-    print("Scheduler started - research runs every 24 hours")
-    print(f"Topic pool size: {len(TOPIC_POOL)} diverse topics")
+    print("Scheduler: Checking for fresh news every 20 minutes")
+    print(f"News queries: {len(NEWS_QUERIES)} | Topic pool: {len(TOPIC_POOL)}")
     
     yield
-    
-    # Shutdown
     scheduler.shutdown()
-    print("Scheduler stopped")
 
 app = FastAPI(
-    title="Post-Labor Research Agent API",
-    description="AI-powered research agent for post-labor economics with DALL-E image generation",
-    version="2.0.0",
+    title="Post-Labor Research Agent",
+    description="AI news monitoring with freshness detection",
+    version="3.0.0",
     lifespan=lifespan
 )
 
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -68,108 +66,98 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    """Root endpoint - service status"""
     return {
         "status": "online",
         "service": "Post-Labor Research Agent",
-        "version": "2.0.0",
-        "features": ["DALL-E images", "Dynamic topics", "48h cache"],
-        "schedule": "Every 24 hours",
-        "topic_pool_size": len(TOPIC_POOL),
-        "endpoints": {
-            "research": "/api/research",
-            "trigger": "/api/research/run",
-            "topics": "/api/research/topics",
-            "history": "/api/research/history",
-            "health": "/health"
-        }
+        "version": "3.0.0",
+        "schedule": "Every 20 minutes (only saves if fresh)",
+        "checks_since_start": check_count
     }
 
 @app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "research-agent", "version": "2.0.0"}
+async def health():
+    return {"status": "healthy"}
 
 @app.get("/api/research")
-async def get_research(limit: int = Query(default=10, ge=1, le=50)):
-    """Get the latest research updates"""
+async def get_research(
+    limit: int = Query(default=10, ge=1, le=100),
+    offset: int = Query(default=0, ge=0)
+):
+    """Get research with pagination"""
     try:
-        updates = get_latest_research(limit)
+        # Get total count first
+        all_research = get_latest_research(limit=1000)
+        total = len(all_research)
+        
+        # Get paginated results
+        updates = get_latest_research(limit=limit + offset)
+        paginated = updates[offset:offset + limit] if offset < len(updates) else []
+        
         return {
-            "updates": updates,
-            "count": len(updates),
-            "status": "success"
+            "updates": paginated,
+            "count": len(paginated),
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+            "has_more": offset + limit < total
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/research/all")
+async def get_all_research():
+    """Get ALL research entries for archive view"""
+    try:
+        updates = get_latest_research(limit=500)
+        return {
+            "updates": updates,
+            "total": len(updates)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/research/run")
 async def trigger_research(
-    topic: str = Query(default=None, description="Specific topic to research"),
-    force: bool = Query(default=False, description="Force new research even if cached"),
-    count: int = Query(default=3, ge=1, le=5, description="Number of topics to research")
+    topic: str = Query(default=None),
+    force: bool = Query(default=False)
 ):
-    """Manually trigger research on fresh topics or a specific topic"""
+    """Manually trigger research"""
     try:
         if topic:
             result = run_research(topic, force=force, generate_images=True)
-            return {
-                "status": "completed",
-                "topic": topic,
-                "result": result,
-                "cached": result.get("cached", False)
-            }
+            return {"status": "completed", "result": result}
         else:
             results = run_all_research(force=force, generate_images=True)
-            cached_count = sum(1 for r in results if r.get("cached", False))
-            return {
-                "status": "completed",
-                "topics_researched": len(results),
-                "cached_results": cached_count,
-                "new_results": len(results) - cached_count,
-                "results": results
-            }
+            return {"status": "completed", "results": results}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Research error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/research/topics")
-async def get_topic_pool():
-    """Get the pool of potential research topics"""
-    return {
-        "topic_pool": TOPIC_POOL,
-        "pool_size": len(TOPIC_POOL),
-        "description": "Topics are randomly selected, avoiding recent duplicates"
-    }
+@app.post("/api/research/check")
+async def trigger_news_check():
+    """Manually trigger a news freshness check"""
+    try:
+        result = run_news_check(generate_images=True)
+        return {"status": "completed", "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/research/history")
-async def get_research_history():
-    """Get all unique topics that have been researched"""
+async def get_history():
+    """Get unique topics researched"""
     try:
-        history = get_all_topics()
-        return {
-            "history": history,
-            "count": len(history)
-        }
+        return {"history": get_all_topics(), "count": len(get_all_topics())}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/research/clear")
 async def clear_research():
-    """Delete ALL research entries and start fresh"""
+    """Clear all research"""
     try:
         deleted = clear_all_research()
-        return {
-            "status": "cleared",
-            "deleted_count": deleted,
-            "message": "All research entries have been deleted"
-        }
+        return {"status": "cleared", "deleted": deleted}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error clearing research: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/ping")
 async def ping():
-    """Keep-alive endpoint"""
-    return {"pong": True, "timestamp": str(__import__('datetime').datetime.now())}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"pong": True}
