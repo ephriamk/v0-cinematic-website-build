@@ -1,12 +1,11 @@
 import os
 import json
 import httpx
-from tavily import TavilyClient
 from database import save_research
 
-# Initialize clients
+# API Keys
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-tavily_client = TavilyClient(api_key=os.environ.get("TAVILY_API_KEY"))
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
 # Pre-defined research topics
 RESEARCH_TOPICS = [
@@ -42,12 +41,24 @@ def call_openai(messages: list, max_tokens: int = 1000) -> str:
         return ""
 
 def search_web(query: str, max_results: int = 5) -> list:
-    """Search the web for information using Tavily"""
+    """Search the web using Tavily REST API directly"""
     try:
-        results = tavily_client.search(query, max_results=max_results)
-        return results.get("results", [])
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                "https://api.tavily.com/search",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "api_key": TAVILY_API_KEY,
+                    "query": query,
+                    "max_results": max_results,
+                    "search_depth": "basic"
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("results", [])
     except Exception as e:
-        print(f"Search error: {e}")
+        print(f"Tavily search error: {e}")
         return []
 
 def analyze_and_summarize(topic: str, search_results: list) -> dict:
