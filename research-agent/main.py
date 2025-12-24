@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from database import init_db, get_latest_research, cleanup_old_research, get_all_topics
+from database import init_db, get_latest_research, cleanup_old_research, get_all_topics, clear_all_research
 from agent import run_research, run_all_research, run_scheduled_research, TOPIC_POOL
 
 # Scheduler for periodic research
@@ -151,6 +151,19 @@ async def get_research_history():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@app.delete("/api/research/clear")
+async def clear_research():
+    """Delete ALL research entries and start fresh"""
+    try:
+        deleted = clear_all_research()
+        return {
+            "status": "cleared",
+            "deleted_count": deleted,
+            "message": "All research entries have been deleted"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing research: {str(e)}")
 
 @app.get("/api/ping")
 async def ping():

@@ -198,3 +198,16 @@ def cleanup_old_research(keep_count: int = 100):
     cur.close()
     conn.close()
     return deleted
+
+def clear_all_research():
+    """Delete ALL research entries - use with caution"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    cur.execute("DELETE FROM research_updates")
+    
+    deleted = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+    return deleted
