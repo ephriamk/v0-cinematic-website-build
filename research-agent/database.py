@@ -23,6 +23,7 @@ def init_db():
             key_stats JSONB DEFAULT '[]'::jsonb,
             image_url TEXT,
             image_prompt TEXT,
+            image_data TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -38,6 +39,10 @@ def init_db():
             IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                           WHERE table_name='research_updates' AND column_name='image_prompt') THEN
                 ALTER TABLE research_updates ADD COLUMN image_prompt TEXT;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                          WHERE table_name='research_updates' AND column_name='image_data') THEN
+                ALTER TABLE research_updates ADD COLUMN image_data TEXT;
             END IF;
         END $$;
     """)
@@ -109,7 +114,7 @@ def get_similar_research(topic: str, limit: int = 1):
     return None
 
 def save_research(topic: str, summary: str, sources: list = None, key_stats: list = None, 
-                  image_url: str = None, image_prompt: str = None):
+                  image_url: str = None, image_prompt: str = None, image_data: str = None):
     """Save a research update to the database"""
     conn = get_connection()
     cur = conn.cursor()
@@ -118,10 +123,10 @@ def save_research(topic: str, summary: str, sources: list = None, key_stats: lis
     stats_json = json.dumps(key_stats or [])
     
     cur.execute("""
-        INSERT INTO research_updates (topic, summary, sources, key_stats, image_url, image_prompt)
-        VALUES (%s, %s, %s::jsonb, %s::jsonb, %s, %s)
+        INSERT INTO research_updates (topic, summary, sources, key_stats, image_url, image_prompt, image_data)
+        VALUES (%s, %s, %s::jsonb, %s::jsonb, %s, %s, %s)
         RETURNING id
-    """, (topic, summary, sources_json, stats_json, image_url, image_prompt))
+    """, (topic, summary, sources_json, stats_json, image_url, image_prompt, image_data))
     
     result = cur.fetchone()
     conn.commit()
@@ -211,3 +216,18 @@ def clear_all_research():
     cur.close()
     conn.close()
     return deleted
+
+def get_image_data(research_id: int) -> str:
+    """Get image data (base64) for a specific research entry"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT image_data FROM research_updates WHERE id = %s
+    """, (research_id,))
+    
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    
+    return row[0] if row else None

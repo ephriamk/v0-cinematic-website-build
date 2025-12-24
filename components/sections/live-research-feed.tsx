@@ -21,6 +21,12 @@ interface ResearchUpdate {
 
 const RESEARCH_API_URL = process.env.NEXT_PUBLIC_RESEARCH_API_URL || 'https://postlabor-research-agent.onrender.com';
 
+// Helper to get image URL - uses our API endpoint that serves from PostgreSQL
+const getImageUrl = (update: ResearchUpdate) => {
+  // If we have stored image data, use our API endpoint
+  return `${RESEARCH_API_URL}/api/research/${update.id}/image`;
+};
+
 export function LiveResearchFeed() {
   const [updates, setUpdates] = useState<ResearchUpdate[]>([]);
   const [allUpdates, setAllUpdates] = useState<ResearchUpdate[]>([]);
@@ -132,11 +138,13 @@ export function LiveResearchFeed() {
                 className="group cursor-pointer"
               >
                 <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden">
-                  {featured.image_url ? (
-                    <img src={featured.image_url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-violet-900/40" />
-                  )}
+                  <img 
+                    src={getImageUrl(featured)} 
+                    alt="" 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 to-violet-900/40" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                   <div className="absolute inset-0 p-6 md:p-10 flex flex-col justify-end">
                     <span className="inline-block self-start px-3 py-1 mb-4 rounded-full text-[10px] tracking-widest uppercase bg-white/10 backdrop-blur text-white/70 border border-white/10">
@@ -161,11 +169,13 @@ export function LiveResearchFeed() {
                   className="group cursor-pointer"
                 >
                   <div className="relative aspect-[4/3] rounded-xl overflow-hidden">
-                    {update.image_url ? (
-                      <img src={update.image_url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900" />
-                    )}
+                    <img 
+                      src={getImageUrl(update)} 
+                      alt="" 
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                     <div className="absolute inset-0 p-4 flex flex-col justify-end">
                       <h3 className="text-sm font-light text-white line-clamp-2">{update.topic}</h3>
@@ -230,7 +240,7 @@ function ArchiveView({
         return (
           <div key={monthKey}>
             <h3 className="text-sm text-white/30 mb-6 tracking-wide">{monthName}</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {items.map((update, i) => (
                 <motion.article
                   key={update.id}
@@ -241,11 +251,13 @@ function ArchiveView({
                   className="group cursor-pointer"
                 >
                   <div className="relative aspect-video rounded-lg overflow-hidden">
-                    {update.image_url ? (
-                      <img src={update.image_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                    ) : (
-                      <div className="absolute inset-0 bg-zinc-900" />
-                    )}
+                    <img 
+                      src={`${RESEARCH_API_URL}/api/research/${update.id}/image`}
+                      alt="" 
+                      className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className="absolute inset-0 bg-zinc-900" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
                     <div className="absolute inset-0 p-4 flex flex-col justify-end">
                       <span className="text-[10px] text-white/30 mb-1">{formatDate(update.created_at)}</span>
@@ -283,11 +295,13 @@ function DetailModal({ update, onClose }: { update: ResearchUpdate; onClose: () 
     >
       {/* Image Hero */}
       <div className="relative h-[40vh] md:h-[50vh]">
-        {update.image_url ? (
-          <img src={update.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-purple-900/50" />
-        )}
+        <img 
+          src={`${RESEARCH_API_URL}/api/research/${update.id}/image`}
+          alt="" 
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-purple-900/50" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30" />
         
         <button

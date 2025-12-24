@@ -3,6 +3,7 @@ import json
 import random
 import hashlib
 import httpx
+import base64
 from datetime import datetime
 from database import save_research, topic_exists_recently, get_similar_research, get_all_topics, get_latest_research
 
@@ -71,8 +72,20 @@ def call_openai(messages: list, max_tokens: int = 1000) -> str:
         print(f"OpenAI API error: {e}")
         return ""
 
-def generate_image(topic: str, summary: str) -> tuple[str, str]:
-    """Generate an image using DALL-E 3"""
+def download_image_as_base64(image_url: str) -> str:
+    """Download image from URL and return as base64 string"""
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            response = client.get(image_url)
+            response.raise_for_status()
+            image_data = response.content
+            return base64.b64encode(image_data).decode('utf-8')
+    except Exception as e:
+        print(f"Error downloading image: {e}")
+        return None
+
+def generate_image(topic: str, summary: str) -> tuple[str, str, str]:
+    """Generate an image using DALL-E 3 and return base64 data for storage"""
     prompt_request = f"""Create a DALL-E prompt (max 150 chars) for: "{topic}"
 Style: Abstract, cinematic, futuristic. Dark moody with ethereal glowing elements.
 NO text/words/letters. Focus on mood, not literal.
@@ -97,7 +110,15 @@ Return ONLY the prompt."""
             )
             response.raise_for_status()
             data = response.json()
-            return data["data"][0]["url"], data["data"][0].get("revised_prompt", image_prompt)
+            temp_url = data["data"][0]["url"]
+            revised_prompt = data["data"][0].get("revised_prompt", image_prompt)
+            
+            # Download and convert to base64 for permanent storage in PostgreSQL
+            image_base64 = download_image_as_base64(temp_url)
+            if image_base64:
+                print(f"  ✓ Image downloaded and converted to base64 ({len(image_base64) // 1024}KB)")
+            
+            return image_base64, revised_prompt
     except Exception as e:
         print(f"DALL-E error: {e}")
         return None, image_prompt
@@ -218,27 +239,28 @@ def run_news_check(generate_images: bool = True) -> dict:
         print("  Content not significant enough")
         return {"status": "not_significant", "query": query}
     
-    # Generate image
-    image_url, image_prompt = None, None
+    # Generate image (returns base64 data)
+    image_data, image_prompt = None, None
     if generate_images and analysis.get("summary"):
-        image_url, image_prompt = generate_image(query, analysis["summary"])
+        image_data, image_prompt = generate_image(query, analysis["summary"])
     
-    # Save to database
+    # Save to database (image_url will be set after we have the ID)
     try:
         record_id = save_research(
             topic=query,
             summary=analysis.get("summary", ""),
             sources=analysis.get("sources", []),
             key_stats=analysis.get("key_stats", []),
-            image_url=image_url,
-            image_prompt=image_prompt
+            image_url=None,  # Will be constructed by frontend using ID
+            image_prompt=image_prompt,
+            image_data=image_data
         )
         print(f"  ✓ Saved new research (ID: {record_id})")
         return {
             "status": "saved",
             "query": query,
             "record_id": record_id,
-            "image_generated": image_url is not None
+            "image_generated": image_data is not None
         }
     except Exception as e:
         print(f"  Error saving: {e}")
@@ -259,9 +281,9 @@ def run_research(topic: str, force: bool = False, generate_images: bool = True) 
     
     analysis = analyze_and_summarize(topic, results)
     
-    image_url, image_prompt = None, None
+    image_data, image_prompt = None, None
     if generate_images:
-        image_url, image_prompt = generate_image(topic, analysis.get("summary", ""))
+        image_data, image_prompt = generate_image(topic, analysis.get("summary", ""))
     
     try:
         record_id = save_research(
@@ -269,10 +291,11 @@ def run_research(topic: str, force: bool = False, generate_images: bool = True) 
             summary=analysis.get("summary", ""),
             sources=analysis.get("sources", []),
             key_stats=analysis.get("key_stats", []),
-            image_url=image_url,
-            image_prompt=image_prompt
+            image_url=None,  # URL constructed by frontend using ID
+            image_prompt=image_prompt,
+            image_data=image_data
         )
-        return {"topic": topic, "status": "success", "record_id": record_id, "image_url": image_url, "cached": False}
+        return {"topic": topic, "status": "success", "record_id": record_id, "has_image": image_data is not None, "cached": False}
     except Exception as e:
         return {"topic": topic, "status": "error", "message": str(e)}
 

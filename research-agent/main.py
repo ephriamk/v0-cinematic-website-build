@@ -1,9 +1,11 @@
 import os
+import base64
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from database import init_db, get_latest_research, cleanup_old_research, get_all_topics, clear_all_research
+from database import init_db, get_latest_research, cleanup_old_research, get_all_topics, clear_all_research, get_image_data
 from agent import run_research, run_all_research, run_news_check, NEWS_QUERIES, TOPIC_POOL
 
 scheduler = BackgroundScheduler()
@@ -161,3 +163,19 @@ async def clear_research():
 @app.get("/api/ping")
 async def ping():
     return {"pong": True}
+
+@app.get("/api/research/{research_id}/image")
+async def get_research_image(research_id: int):
+    """Serve image for a research entry from PostgreSQL"""
+    try:
+        image_data = get_image_data(research_id)
+        if not image_data:
+            raise HTTPException(status_code=404, detail="Image not found")
+        
+        # Decode base64 and return as PNG
+        image_bytes = base64.b64decode(image_data)
+        return Response(content=image_bytes, media_type="image/png")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
