@@ -1,23 +1,74 @@
 import os
 import json
+import random
 import httpx
-from database import save_research, topic_exists_recently, get_similar_research
+from datetime import datetime
+from database import save_research, topic_exists_recently, get_similar_research, get_all_topics
 
 # API Keys
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
-# Pre-defined research topics
-RESEARCH_TOPICS = [
-    "AI job automation statistics 2025",
-    "Universal Basic Income UBI trials results 2025",
-    "robot taxation policy proposals 2025",
-    "AI workforce displacement news today",
-    "post-labor economics developments 2025"
+# Large diverse pool of topics - agent will pick randomly and avoid repeats
+TOPIC_POOL = [
+    # AI & Automation
+    "artificial intelligence replacing white collar jobs 2025",
+    "AI agents autonomous workers news",
+    "ChatGPT impact on employment statistics",
+    "AI coding assistants replacing developers",
+    "creative AI displacing artists designers",
+    "autonomous vehicles trucking job losses",
+    "warehouse automation robotics employment",
+    "AI customer service job displacement",
+    "legal AI paralegals lawyers automation",
+    "medical AI diagnosis healthcare jobs",
+    
+    # UBI & Economic Policy
+    "universal basic income pilot results 2025",
+    "UBI experiments outcomes worldwide",
+    "guaranteed income programs USA cities",
+    "Alaska permanent fund dividend results",
+    "Finland UBI experiment long term effects",
+    "Kenya GiveDirectly basic income study",
+    "Sam Altman universal basic income project",
+    "Andrew Yang UBI policy updates",
+    
+    # Robot Taxation & Wealth
+    "robot tax legislation proposals 2025",
+    "automation tax policy debates",
+    "AI company windfall tax proposals",
+    "tech billionaire wealth tax automation",
+    "wealth inequality AI economy",
+    "corporate profits vs worker wages AI era",
+    
+    # Future of Work
+    "four day work week trials results",
+    "remote work AI productivity studies",
+    "gig economy workers rights 2025",
+    "freelance economy growth AI tools",
+    "human AI collaboration workplace",
+    "skills needed post-AI job market",
+    "reskilling workforce automation",
+    "education system AI job preparation",
+    
+    # Philosophical & Social
+    "meaning purpose work AI age",
+    "post-scarcity economics theory",
+    "leisure society automation predictions",
+    "mental health unemployment AI displacement",
+    "social status without work identity",
+    "universal basic services vs UBI debate",
+    
+    # Breaking News Triggers
+    "AI layoffs announcements today",
+    "tech company job cuts AI 2025",
+    "automation union strikes protests",
+    "government AI regulation employment",
+    "AI startup funding workforce impact",
 ]
 
-# Cache duration in hours - don't re-research same topic within this window
-CACHE_HOURS = 12
+# Cache duration - check if similar topic researched recently
+CACHE_HOURS = 48  # Increased to avoid repetition
 
 def call_openai(messages: list, max_tokens: int = 1000) -> str:
     """Call OpenAI Chat API directly using httpx"""
@@ -44,35 +95,25 @@ def call_openai(messages: list, max_tokens: int = 1000) -> str:
         return ""
 
 def generate_image(topic: str, summary: str) -> tuple[str, str]:
-    """Generate an image using DALL-E 3 based on the research topic
-    
-    Returns:
-        tuple: (image_url, prompt_used)
-    """
-    # Create a cinematic, abstract prompt based on the topic
-    prompt_request = f"""Create a short DALL-E image prompt (max 200 chars) for this research topic: "{topic}"
+    """Generate an image using DALL-E 3 based on the research topic"""
+    prompt_request = f"""Create a DALL-E image prompt (max 150 chars) for: "{topic}"
 
-The image should be:
-- Abstract and cinematic, NOT literal
-- Futuristic, ethereal atmosphere
-- Dark moody background with glowing accents
-- No text, no words, no letters
-- Style: digital art, volumetric lighting, atmospheric
+Style: Abstract, cinematic, futuristic. Dark moody atmosphere with ethereal glowing elements.
+NO text, NO words, NO letters, NO numbers in the image.
+Focus on mood and concept, not literal representation.
 
-Return ONLY the prompt, nothing else."""
+Return ONLY the prompt."""
 
     messages = [
-        {"role": "system", "content": "You are an expert at creating evocative DALL-E prompts. Return only the prompt."},
+        {"role": "system", "content": "You create evocative DALL-E prompts. Return only the prompt, nothing else."},
         {"role": "user", "content": prompt_request}
     ]
     
-    image_prompt = call_openai(messages, max_tokens=100)
+    image_prompt = call_openai(messages, max_tokens=80)
     
     if not image_prompt:
-        # Fallback prompt
-        image_prompt = f"Abstract futuristic digital art representing {topic[:50]}, dark moody atmosphere, glowing blue and purple accents, volumetric lighting, cinematic, no text"
+        image_prompt = f"Abstract futuristic digital art, dark atmosphere, glowing cyan and purple accents, volumetric lighting, cinematic, ethereal, no text"
     
-    # Clean up the prompt
     image_prompt = image_prompt.strip().strip('"').strip("'")[:400]
     
     try:
@@ -87,7 +128,7 @@ Return ONLY the prompt, nothing else."""
                     "model": "dall-e-3",
                     "prompt": image_prompt,
                     "n": 1,
-                    "size": "1792x1024",  # Wide format for cards
+                    "size": "1792x1024",
                     "quality": "standard",
                     "style": "vivid"
                 }
@@ -95,16 +136,15 @@ Return ONLY the prompt, nothing else."""
             response.raise_for_status()
             data = response.json()
             image_url = data["data"][0]["url"]
-            # DALL-E might revise the prompt
             revised_prompt = data["data"][0].get("revised_prompt", image_prompt)
-            print(f"Generated image for: {topic}")
+            print(f"Generated image for: {topic[:50]}...")
             return image_url, revised_prompt
     except Exception as e:
         print(f"DALL-E API error: {e}")
         return None, image_prompt
 
 def search_web(query: str, max_results: int = 5) -> list:
-    """Search the web using Tavily REST API directly"""
+    """Search the web using Tavily REST API"""
     try:
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
@@ -126,8 +166,6 @@ def search_web(query: str, max_results: int = 5) -> list:
 
 def analyze_and_summarize(topic: str, search_results: list) -> dict:
     """Use OpenAI to analyze search results and create a summary"""
-    
-    # Format search results for the prompt
     results_text = ""
     sources = []
     for i, result in enumerate(search_results, 1):
@@ -140,42 +178,36 @@ def analyze_and_summarize(topic: str, search_results: list) -> dict:
             "date": "2025"
         })
     
-    prompt = f"""You are a Post-Labor Economics Research Analyst. Analyze the following search results about "{topic}" and provide:
-
-1. A comprehensive 2-3 paragraph SUMMARY of the key findings
-2. A list of 3-5 KEY STATISTICS (specific numbers, percentages, dates)
-3. The most important INSIGHT or trend
+    prompt = f"""Analyze these search results about "{topic}" for a post-labor economics research feed.
 
 Search Results:
 {results_text}
 
-Respond in this exact JSON format:
+Provide:
+1. A 2-3 paragraph SUMMARY focusing on what's NEW and SIGNIFICANT
+2. 3-5 KEY STATISTICS with specific numbers
+3. The most important INSIGHT
+
+Respond in JSON format:
 {{
-    "summary": "Your 2-3 paragraph summary here...",
-    "key_stats": ["Statistic 1", "Statistic 2", "Statistic 3"],
-    "insight": "The main insight or trend"
+    "summary": "Your summary...",
+    "key_stats": ["Stat 1", "Stat 2", "Stat 3"],
+    "insight": "Main insight"
 }}
 
-Focus on 2024-2025 data only. Be factual and cite specific numbers."""
+Focus on 2024-2025 data. Be specific with numbers and dates."""
 
     messages = [
-        {"role": "system", "content": "You are a research analyst specializing in post-labor economics, AI automation, and the future of work. Always respond with valid JSON."},
+        {"role": "system", "content": "You are a research analyst for post-labor economics. Always respond with valid JSON."},
         {"role": "user", "content": prompt}
     ]
     
     content = call_openai(messages)
     
     if not content:
-        return {
-            "summary": f"Research on {topic} is being processed.",
-            "key_stats": [],
-            "insight": "",
-            "sources": sources
-        }
+        return {"summary": f"Research on {topic}.", "key_stats": [], "insight": "", "sources": sources}
     
-    # Try to parse JSON from the response
     try:
-        # Handle potential markdown code blocks
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0]
         elif "```" in content:
@@ -189,25 +221,45 @@ Focus on 2024-2025 data only. Be factual and cite specific numbers."""
             "sources": sources
         }
     except json.JSONDecodeError:
-        # Fallback: use the raw content as summary
-        return {
-            "summary": content,
-            "key_stats": [],
-            "insight": "",
-            "sources": sources
-        }
+        return {"summary": content, "key_stats": [], "insight": "", "sources": sources}
+
+def get_fresh_topics(count: int = 3) -> list:
+    """Select topics that haven't been researched recently"""
+    # Get already researched topics
+    existing = get_all_topics()
+    existing_keywords = set()
+    for item in existing:
+        # Extract key words from existing topics
+        words = item["topic"].lower().split()
+        existing_keywords.update(words[:3])
+    
+    # Filter pool to find fresh topics
+    fresh_topics = []
+    shuffled_pool = TOPIC_POOL.copy()
+    random.shuffle(shuffled_pool)
+    
+    for topic in shuffled_pool:
+        topic_words = set(topic.lower().split()[:3])
+        # Check if this topic overlaps too much with existing
+        overlap = len(topic_words & existing_keywords)
+        if overlap < 2:  # Allow if less than 2 words overlap
+            if not topic_exists_recently(topic, hours=CACHE_HOURS):
+                fresh_topics.append(topic)
+                if len(fresh_topics) >= count:
+                    break
+    
+    # Fallback: if not enough fresh topics, pick random ones
+    while len(fresh_topics) < count:
+        topic = random.choice(TOPIC_POOL)
+        if topic not in fresh_topics:
+            fresh_topics.append(topic)
+    
+    return fresh_topics
 
 def run_research(topic: str, force: bool = False, generate_images: bool = True) -> dict:
-    """Execute a complete research task on a specific topic
-    
-    Args:
-        topic: The topic to research
-        force: If True, bypass cache and force new research
-        generate_images: If True, generate a DALL-E image for the research
-    """
+    """Execute a complete research task on a specific topic"""
     print(f"Researching: {topic}")
     
-    # Check if we already have recent research on this topic
     if not force and topic_exists_recently(topic, hours=CACHE_HOURS):
         existing = get_similar_research(topic)
         if existing:
@@ -216,31 +268,23 @@ def run_research(topic: str, force: bool = False, generate_images: bool = True) 
                 "topic": topic,
                 "status": "cached",
                 "record_id": existing["id"],
-                "summary_preview": existing["summary"][:200] + "..." if len(existing["summary"]) > 200 else existing["summary"],
+                "summary_preview": existing["summary"][:200] + "...",
                 "image_url": existing.get("image_url"),
                 "cached": True
             }
     
-    # Step 1: Search the web
     search_results = search_web(topic)
     
     if not search_results:
-        return {
-            "topic": topic,
-            "status": "no_results",
-            "message": "No search results found"
-        }
+        return {"topic": topic, "status": "no_results", "message": "No search results found"}
     
-    # Step 2: Analyze and summarize
     analysis = analyze_and_summarize(topic, search_results)
     
-    # Step 3: Generate image with DALL-E
     image_url = None
     image_prompt = None
     if generate_images:
         image_url, image_prompt = generate_image(topic, analysis["summary"])
     
-    # Step 4: Save to database
     try:
         record_id = save_research(
             topic=topic,
@@ -255,37 +299,47 @@ def run_research(topic: str, force: bool = False, generate_images: bool = True) 
             "topic": topic,
             "status": "success",
             "record_id": record_id,
-            "summary_preview": analysis["summary"][:200] + "..." if len(analysis["summary"]) > 200 else analysis["summary"],
+            "summary_preview": analysis["summary"][:200] + "...",
             "image_url": image_url,
             "cached": False
         }
     except Exception as e:
-        return {
-            "topic": topic,
-            "status": "error",
-            "message": str(e)
-        }
+        return {"topic": topic, "status": "error", "message": str(e)}
 
-def run_all_research(force: bool = False, generate_images: bool = True) -> list:
-    """Run research on all predefined topics
+def run_scheduled_research(generate_images: bool = True) -> list:
+    """Run research on fresh, diverse topics - called by scheduler"""
+    # Get 3 fresh topics that haven't been covered recently
+    topics = get_fresh_topics(count=3)
     
-    Args:
-        force: If True, bypass cache and force new research on all topics
-        generate_images: If True, generate DALL-E images for each research
-    """
+    print(f"Scheduled research on {len(topics)} fresh topics:")
+    for t in topics:
+        print(f"  - {t}")
+    
     results = []
-    for topic in RESEARCH_TOPICS:
-        result = run_research(topic, force=force, generate_images=generate_images)
+    for topic in topics:
+        result = run_research(topic, force=False, generate_images=generate_images)
         results.append(result)
         status = "cached" if result.get("cached") else result["status"]
-        print(f"Completed: {topic} - Status: {status}")
+        print(f"Completed: {topic[:40]}... - Status: {status}")
+    
+    return results
+
+def run_all_research(force: bool = False, generate_images: bool = True) -> list:
+    """Run research on fresh topics - for manual triggers"""
+    topics = get_fresh_topics(count=5 if force else 3)
+    
+    results = []
+    for topic in topics:
+        result = run_research(topic, force=force, generate_images=generate_images)
+        results.append(result)
+    
     return results
 
 if __name__ == "__main__":
-    # Test run
     from dotenv import load_dotenv
     load_dotenv()
     
-    print("Testing research agent...")
-    result = run_research("AI job automation 2025", generate_images=True)
-    print(json.dumps(result, indent=2))
+    print("Testing fresh topic selection...")
+    topics = get_fresh_topics(5)
+    for t in topics:
+        print(f"  - {t}")
