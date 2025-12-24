@@ -1,7 +1,7 @@
 import os
 import json
 import psycopg
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -25,10 +25,69 @@ def init_db():
         )
     """)
     
+    # Create index on topic for faster lookups
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_research_topic ON research_updates(topic)
+    """)
+    
     conn.commit()
     cur.close()
     conn.close()
     print("Database initialized successfully")
+
+def topic_exists_recently(topic: str, hours: int = 24) -> bool:
+    """Check if a topic has been researched within the last N hours"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    # Normalize topic for comparison (lowercase, trimmed)
+    normalized_topic = topic.lower().strip()
+    
+    cur.execute("""
+        SELECT COUNT(*) FROM research_updates
+        WHERE LOWER(topic) LIKE %s
+        AND created_at > NOW() - INTERVAL '%s hours'
+    """, (f"%{normalized_topic}%", hours))
+    
+    count = cur.fetchone()[0]
+    cur.close()
+    conn.close()
+    return count > 0
+
+def get_similar_research(topic: str, limit: int = 1):
+    """Get existing research similar to the given topic"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    normalized_topic = topic.lower().strip()
+    keywords = normalized_topic.split()[:3]  # Use first 3 words
+    
+    # Build search pattern
+    pattern = '%' + '%'.join(keywords) + '%'
+    
+    cur.execute("""
+        SELECT id, topic, summary, sources, key_stats, created_at::text
+        FROM research_updates
+        WHERE LOWER(topic) LIKE %s
+        ORDER BY created_at DESC
+        LIMIT %s
+    """, (pattern, limit))
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    if rows:
+        row = rows[0]
+        return {
+            "id": row[0],
+            "topic": row[1],
+            "summary": row[2],
+            "sources": row[3],
+            "key_stats": row[4],
+            "created_at": row[5]
+        }
+    return None
 
 def save_research(topic: str, summary: str, sources: list = None, key_stats: list = None):
     """Save a research update to the database"""
@@ -79,6 +138,24 @@ def get_latest_research(limit: int = 10):
             "created_at": row[5]
         })
     return results
+
+def get_all_topics():
+    """Get all unique topics that have been researched"""
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT DISTINCT topic, MAX(created_at)::text as last_updated
+        FROM research_updates
+        GROUP BY topic
+        ORDER BY MAX(created_at) DESC
+    """)
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    return [{"topic": row[0], "last_updated": row[1]} for row in rows]
 
 def cleanup_old_research(keep_count: int = 100):
     """Remove old research entries, keeping only the most recent ones"""

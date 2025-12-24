@@ -1,7 +1,7 @@
 import os
 import json
 import httpx
-from database import save_research
+from database import save_research, topic_exists_recently, get_similar_research
 
 # API Keys
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -15,6 +15,9 @@ RESEARCH_TOPICS = [
     "AI workforce displacement news today",
     "post-labor economics developments 2025"
 ]
+
+# Cache duration in hours - don't re-research same topic within this window
+CACHE_HOURS = 12
 
 def call_openai(messages: list, max_tokens: int = 1000) -> str:
     """Call OpenAI API directly using httpx"""
@@ -134,9 +137,27 @@ Focus on 2024-2025 data only. Be factual and cite specific numbers."""
             "sources": sources
         }
 
-def run_research(topic: str) -> dict:
-    """Execute a complete research task on a specific topic"""
+def run_research(topic: str, force: bool = False) -> dict:
+    """Execute a complete research task on a specific topic
+    
+    Args:
+        topic: The topic to research
+        force: If True, bypass cache and force new research
+    """
     print(f"Researching: {topic}")
+    
+    # Check if we already have recent research on this topic
+    if not force and topic_exists_recently(topic, hours=CACHE_HOURS):
+        existing = get_similar_research(topic)
+        if existing:
+            print(f"Using cached research for: {topic}")
+            return {
+                "topic": topic,
+                "status": "cached",
+                "record_id": existing["id"],
+                "summary_preview": existing["summary"][:200] + "..." if len(existing["summary"]) > 200 else existing["summary"],
+                "cached": True
+            }
     
     # Step 1: Search the web
     search_results = search_web(topic)
@@ -164,7 +185,8 @@ def run_research(topic: str) -> dict:
             "topic": topic,
             "status": "success",
             "record_id": record_id,
-            "summary_preview": analysis["summary"][:200] + "..." if len(analysis["summary"]) > 200 else analysis["summary"]
+            "summary_preview": analysis["summary"][:200] + "..." if len(analysis["summary"]) > 200 else analysis["summary"],
+            "cached": False
         }
     except Exception as e:
         return {
@@ -173,13 +195,18 @@ def run_research(topic: str) -> dict:
             "message": str(e)
         }
 
-def run_all_research() -> list:
-    """Run research on all predefined topics"""
+def run_all_research(force: bool = False) -> list:
+    """Run research on all predefined topics
+    
+    Args:
+        force: If True, bypass cache and force new research on all topics
+    """
     results = []
     for topic in RESEARCH_TOPICS:
-        result = run_research(topic)
+        result = run_research(topic, force=force)
         results.append(result)
-        print(f"Completed: {topic} - Status: {result['status']}")
+        status = "cached" if result.get("cached") else result["status"]
+        print(f"Completed: {topic} - Status: {status}")
     return results
 
 if __name__ == "__main__":

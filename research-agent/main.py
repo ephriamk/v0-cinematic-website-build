@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from database import init_db, get_latest_research, cleanup_old_research
+from database import init_db, get_latest_research, cleanup_old_research, get_all_topics
 from agent import run_research, run_all_research, RESEARCH_TOPICS
 
 # Scheduler for periodic research
@@ -13,7 +13,7 @@ def scheduled_research():
     """Background job to run research periodically"""
     print("Running scheduled research...")
     try:
-        run_all_research()
+        run_all_research(force=False)  # Use cache for scheduled runs
         cleanup_old_research(keep_count=100)
         print("Scheduled research completed")
     except Exception as e:
@@ -69,6 +69,7 @@ async def root():
             "research": "/api/research",
             "trigger": "/api/research/run",
             "topics": "/api/research/topics",
+            "history": "/api/research/history",
             "health": "/health"
         }
     }
@@ -92,23 +93,35 @@ async def get_research(limit: int = Query(default=10, ge=1, le=50)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/api/research/run")
-async def trigger_research(topic: str = Query(default=None)):
-    """Manually trigger a research task"""
+async def trigger_research(
+    topic: str = Query(default=None),
+    force: bool = Query(default=False, description="Force new research even if cached")
+):
+    """Manually trigger a research task
+    
+    Args:
+        topic: Optional specific topic to research
+        force: If True, bypass cache and force new research
+    """
     try:
         if topic:
             # Research specific topic
-            result = run_research(topic)
+            result = run_research(topic, force=force)
             return {
                 "status": "completed",
                 "topic": topic,
-                "result": result
+                "result": result,
+                "cached": result.get("cached", False)
             }
         else:
             # Research all topics
-            results = run_all_research()
+            results = run_all_research(force=force)
+            cached_count = sum(1 for r in results if r.get("cached", False))
             return {
                 "status": "completed",
                 "topics_researched": len(results),
+                "cached_results": cached_count,
+                "new_results": len(results) - cached_count,
                 "results": results
             }
     except Exception as e:
@@ -122,6 +135,18 @@ async def get_topics():
         "count": len(RESEARCH_TOPICS)
     }
 
+@app.get("/api/research/history")
+async def get_research_history():
+    """Get all unique topics that have been researched"""
+    try:
+        history = get_all_topics()
+        return {
+            "history": history,
+            "count": len(history)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
 @app.get("/api/ping")
 async def ping():
     """Keep-alive endpoint to prevent service from sleeping"""
@@ -131,4 +156,3 @@ async def ping():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
