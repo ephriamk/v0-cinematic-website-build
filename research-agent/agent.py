@@ -1,11 +1,11 @@
 import os
 import json
-from openai import OpenAI
+import httpx
 from tavily import TavilyClient
 from database import save_research
 
 # Initialize clients
-openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 tavily_client = TavilyClient(api_key=os.environ.get("TAVILY_API_KEY"))
 
 # Pre-defined research topics
@@ -16,6 +16,30 @@ RESEARCH_TOPICS = [
     "AI workforce displacement news today",
     "post-labor economics developments 2025"
 ]
+
+def call_openai(messages: list, max_tokens: int = 1000) -> str:
+    """Call OpenAI API directly using httpx"""
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            response = client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": max_tokens
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return ""
 
 def search_web(query: str, max_results: int = 5) -> list:
     """Search the web for information using Tavily"""
@@ -60,47 +84,40 @@ Respond in this exact JSON format:
 
 Focus on 2024-2025 data only. Be factual and cite specific numbers."""
 
-    try:
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a research analyst specializing in post-labor economics, AI automation, and the future of work. Always respond with valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=1000
-        )
-        
-        content = response.choices[0].message.content
-        
-        # Try to parse JSON from the response
-        try:
-            # Handle potential markdown code blocks
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0]
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0]
-            
-            parsed = json.loads(content.strip())
-            return {
-                "summary": parsed.get("summary", ""),
-                "key_stats": parsed.get("key_stats", []),
-                "insight": parsed.get("insight", ""),
-                "sources": sources
-            }
-        except json.JSONDecodeError:
-            # Fallback: use the raw content as summary
-            return {
-                "summary": content,
-                "key_stats": [],
-                "insight": "",
-                "sources": sources
-            }
-            
-    except Exception as e:
-        print(f"OpenAI error: {e}")
+    messages = [
+        {"role": "system", "content": "You are a research analyst specializing in post-labor economics, AI automation, and the future of work. Always respond with valid JSON."},
+        {"role": "user", "content": prompt}
+    ]
+    
+    content = call_openai(messages)
+    
+    if not content:
         return {
             "summary": f"Research on {topic} is being processed.",
+            "key_stats": [],
+            "insight": "",
+            "sources": sources
+        }
+    
+    # Try to parse JSON from the response
+    try:
+        # Handle potential markdown code blocks
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0]
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0]
+        
+        parsed = json.loads(content.strip())
+        return {
+            "summary": parsed.get("summary", ""),
+            "key_stats": parsed.get("key_stats", []),
+            "insight": parsed.get("insight", ""),
+            "sources": sources
+        }
+    except json.JSONDecodeError:
+        # Fallback: use the raw content as summary
+        return {
+            "summary": content,
             "key_stats": [],
             "insight": "",
             "sources": sources
@@ -136,7 +153,7 @@ def run_research(topic: str) -> dict:
             "topic": topic,
             "status": "success",
             "record_id": record_id,
-            "summary_preview": analysis["summary"][:200] + "..."
+            "summary_preview": analysis["summary"][:200] + "..." if len(analysis["summary"]) > 200 else analysis["summary"]
         }
     except Exception as e:
         return {
@@ -162,4 +179,3 @@ if __name__ == "__main__":
     print("Testing research agent...")
     result = run_research("AI job automation 2025")
     print(json.dumps(result, indent=2))
-
