@@ -1,14 +1,13 @@
 import os
 import json
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg
 from datetime import datetime
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_connection():
     """Get a database connection"""
-    return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+    return psycopg.connect(DATABASE_URL)
 
 def init_db():
     """Create tables if they don't exist"""
@@ -49,7 +48,7 @@ def save_research(topic: str, summary: str, sources: list = None, key_stats: lis
     conn.commit()
     cur.close()
     conn.close()
-    return result['id']
+    return result[0]
 
 def get_latest_research(limit: int = 10):
     """Get the latest research updates"""
@@ -64,12 +63,22 @@ def get_latest_research(limit: int = 10):
         LIMIT %s
     """, (limit,))
     
-    results = cur.fetchall()
+    rows = cur.fetchall()
     cur.close()
     conn.close()
     
     # Convert to list of dicts
-    return [dict(row) for row in results]
+    results = []
+    for row in rows:
+        results.append({
+            "id": row[0],
+            "topic": row[1],
+            "summary": row[2],
+            "sources": row[3],
+            "key_stats": row[4],
+            "created_at": row[5]
+        })
+    return results
 
 def cleanup_old_research(keep_count: int = 100):
     """Remove old research entries, keeping only the most recent ones"""
@@ -90,4 +99,3 @@ def cleanup_old_research(keep_count: int = 100):
     cur.close()
     conn.close()
     return deleted
-
