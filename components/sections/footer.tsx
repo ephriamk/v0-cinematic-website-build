@@ -75,7 +75,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="https://pump.fun"
+                  href="https://pump.fun/coin/6zLA3vRBE348wkuzkkxqhChzQdfzX748xcc53Z2Dpump"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground/70 hover:text-accent transition-colors duration-300 text-sm"

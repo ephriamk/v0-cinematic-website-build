@@ -42,7 +42,7 @@ export function HeroSection() {
               <Twitter className="w-5 h-5" />
             </a>
             <a
-              href="https://pump.fun"
+              href="https://pump.fun/coin/6zLA3vRBE348wkuzkkxqhChzQdfzX748xcc53Z2Dpump"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs font-bold text-white/60 hover:text-accent transition-colors uppercase tracking-wider"
