@@ -111,7 +111,7 @@ export function LiveResearchFeed() {
             className="self-start md:self-auto px-5 py-2.5 rounded-full text-sm border transition-all duration-300
               bg-white/[0.02] border-white/10 text-white/50 hover:text-white hover:border-white/30"
           >
-            {showArchive ? '← Back to Latest' : `View Archive (${updates.length > 0 ? allUpdates.length || '...' : 0})`}
+            {showArchive ? '← Back to Latest' : `View Archive? (${updates.length > 0 ? allUpdates.length || '...' : 0})`}
           </button>
         </motion.div>
 
