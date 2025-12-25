@@ -47,7 +47,7 @@ export function HeroSection() {
               rel="noopener noreferrer"
               className="text-xs font-bold text-white/60 hover:text-accent transition-colors uppercase tracking-wider"
             >
-              PumpFun
+              Pump Fun
             </a>
           </div>
         </div>
