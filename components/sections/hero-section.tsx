@@ -1,10 +1,24 @@
 "use client"
 
+import { useState } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
-import { Twitter } from "lucide-react"
+import { Twitter, Copy, Check } from "lucide-react"
+
+const CONTRACT_ADDRESS = "6zLA3vRBE348wkuzkkxqhChzQdfzX748xcc53Z2Dpump"
 
 export function HeroSection() {
+  const [copied, setCopied] = useState(false)
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(CONTRACT_ADDRESS)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
   return (
     <section className="relative h-screen flex flex-col">
       {/* Navigation */}
@@ -54,14 +68,36 @@ export function HeroSection() {
       </nav>
 
       <motion.div
-        className="absolute top-20 left-6 md:left-12 z-20 flex items-center gap-3 px-4 py-2 bg-background/80 backdrop-blur-sm border border-accent/30 rounded-full"
+        className="absolute top-20 left-6 md:left-12 z-20 flex flex-col gap-2"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.6, duration: 0.8 }}
       >
-        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-        <span className="text-sm font-medium text-foreground">$PLE</span>
-        <span className="text-xs text-muted-foreground">Post Labor Economics</span>
+        {/* Token Badge */}
+        <div className="flex items-center gap-3 px-4 py-2 bg-background/80 backdrop-blur-sm border border-accent/30 rounded-full">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-sm font-medium text-foreground">$PLE</span>
+          <span className="text-xs text-muted-foreground">Post Labor Economics</span>
+        </div>
+        
+        {/* Contract Address */}
+        <button
+          onClick={copyToClipboard}
+          className="group flex items-center gap-2 px-3 py-1.5 bg-background/60 backdrop-blur-sm border border-white/10 hover:border-accent/50 rounded-full transition-all duration-300"
+        >
+          <span className="text-[10px] text-white/40 uppercase tracking-wider">CA:</span>
+          <span className="text-xs font-mono text-white/60 group-hover:text-white/90 transition-colors">
+            {CONTRACT_ADDRESS.slice(0, 4)}...{CONTRACT_ADDRESS.slice(-4)}
+          </span>
+          {copied ? (
+            <Check className="w-3 h-3 text-green-500" />
+          ) : (
+            <Copy className="w-3 h-3 text-white/40 group-hover:text-accent transition-colors" />
+          )}
+          <span className={`text-[10px] transition-opacity duration-200 ${copied ? 'text-green-500 opacity-100' : 'text-white/40 opacity-0 group-hover:opacity-100'}`}>
+            {copied ? 'Copied!' : 'Click to copy'}
+          </span>
+        </button>
       </motion.div>
 
       <motion.div
